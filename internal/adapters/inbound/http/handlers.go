@@ -2,6 +2,7 @@ package http
 
 import (
 	"net/http"
+	"video-processor/internal/core/domain"
 	"video-processor/internal/core/ports"
 
 	"github.com/gin-gonic/gin"
@@ -9,12 +10,14 @@ import (
 
 type Handler struct {
 	videoUseCase ports.VideoUseCase
+	userUseCase  ports.UserUseCase
 	storage      ports.Storage
 }
 
-func NewHandler(v ports.VideoUseCase, s ports.Storage) *Handler {
+func NewHandler(v ports.VideoUseCase, u ports.UserUseCase, s ports.Storage) *Handler {
 	return &Handler{
 		videoUseCase: v,
+		userUseCase:  u,
 		storage:      s,
 	}
 }
@@ -24,6 +27,10 @@ func (h *Handler) RegisterRoutes(r *gin.Engine) {
 	r.POST("/upload", h.HandleVideoUpload)
 	r.GET("/download/:filename", h.HandleDownload)
 	r.GET("/api/status", h.HandleStatus)
+
+	// Auth routes
+	r.POST("/register", h.HandleRegister)
+	r.POST("/login", h.HandleLogin)
 }
 
 func (h *Handler) HandleIndex(c *gin.Context) {
@@ -71,4 +78,36 @@ func (h *Handler) HandleStatus(c *gin.Context) {
 		"files": files,
 		"total": len(files),
 	})
+}
+
+func (h *Handler) HandleRegister(c *gin.Context) {
+	var req domain.RegisterRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Dados inválidos: " + err.Error()})
+		return
+	}
+
+	response, err := h.userUseCase.Register(req.Email, req.Password, req.Name)
+	if err != nil {
+		c.JSON(http.StatusConflict, gin.H{"success": false, "message": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, response)
+}
+
+func (h *Handler) HandleLogin(c *gin.Context) {
+	var req domain.LoginRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Dados inválidos: " + err.Error()})
+		return
+	}
+
+	response, err := h.userUseCase.Login(req.Email, req.Password)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
 }

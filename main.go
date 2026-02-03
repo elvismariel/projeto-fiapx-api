@@ -5,12 +5,20 @@ import (
 	"log"
 	inbound_http "video-processor/internal/adapters/inbound/http"
 	outbound_processor "video-processor/internal/adapters/outbound/processor"
+	outbound_repository "video-processor/internal/adapters/outbound/repository"
 	outbound_storage "video-processor/internal/adapters/outbound/storage"
 	core_services "video-processor/internal/core/services"
+
+	"context"
+	"os"
 
 	"os/exec"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func main() {
@@ -20,15 +28,48 @@ func main() {
 		log.Fatal("❌ Erro: ffmpeg não encontrado no sistema. Por favor, instale o ffmpeg para continuar.")
 	}
 
+	// Database initialization
+	dbUser := os.Getenv("DB_USER")
+	dbPass := os.Getenv("DB_PASSWORD")
+	dbHost := os.Getenv("DB_HOST")
+	dbPort := os.Getenv("DB_PORT")
+	dbName := os.Getenv("DB_NAME")
+
+	if dbHost == "" {
+		dbHost = "localhost"
+	}
+
+	connStr := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", dbUser, dbPass, dbHost, dbPort, dbName)
+
+	// Run migrations
+	m, err := migrate.New("file://migrations", connStr)
+	if err != nil {
+		log.Printf("⚠️ Erro ao preparar migrações: %v", err)
+	} else {
+		if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+			log.Printf("⚠️ Erro ao aplicar migrações: %v", err)
+		} else {
+			fmt.Println("✅ Migrações aplicadas com sucesso!")
+		}
+	}
+
+	dbPool, err := pgxpool.New(context.Background(), connStr)
+	if err != nil {
+		log.Fatal("❌ Erro ao conectar ao banco de dados: ", err)
+	}
+	defer dbPool.Close()
+
 	// Initialize Outbound Adapters
 	storage := outbound_storage.NewFSStorage()
 	processor := outbound_processor.NewFFmpegProcessor()
+	userRepo := outbound_repository.NewPostgresUserRepository(dbPool)
 
-	// Initialize Core Service (Use Case)
+	// Initialize Core Services
 	videoService := core_services.NewVideoService(processor, storage)
+	userService := core_services.NewUserService(userRepo, os.Getenv("JWT_SECRET"))
 
 	// Initialize Inbound Adapter (HTTP)
-	handler := inbound_http.NewHandler(videoService, storage)
+	handler := inbound_http.NewHandler(videoService, userService, storage)
 
 	r := gin.Default()
 

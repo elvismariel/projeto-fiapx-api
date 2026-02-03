@@ -21,6 +21,7 @@ vendor/
 # outputs and uploads directories (temporary files)
 outputs/
 uploads/
+temp/
 
 # Go workspace file
 go.work

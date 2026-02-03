@@ -25,3 +25,16 @@ type Storage interface {
 	ListOutputs() ([]domain.FileInfo, error)
 	GetOutputPath(filename string) string
 }
+
+// UserUseCase is the Inbound Port for user logic
+type UserUseCase interface {
+	Register(email, password, name string) (domain.AuthResponse, error)
+	Login(email, password string) (domain.AuthResponse, error)
+}
+
+// UserRepository is the Outbound Port for user data persistence
+type UserRepository interface {
+	Create(user *domain.User) error
+	GetByEmail(email string) (*domain.User, error)
+	GetByID(id int64) (*domain.User, error)
+}
