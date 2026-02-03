@@ -18,6 +18,10 @@
 # Dependency directories (remove the comment below to include it)
 vendor/
 
+# outputs and uploads directories (temporary files)
+outputs/
+uploads/
+
 # Go workspace file
 go.work
 go.work.sum
