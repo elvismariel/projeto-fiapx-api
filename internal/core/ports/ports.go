@@ -7,8 +7,9 @@ import (
 
 // VideoUseCase is the Inbound Port
 type VideoUseCase interface {
-	UploadAndProcess(filename string, file io.Reader) (domain.ProcessingResult, error)
+	UploadAndProcess(userID int64, filename string, file io.Reader) (domain.ProcessingResult, error)
 	ListProcessedFiles() ([]domain.FileInfo, error)
+	GetVideosByUserID(userID int64) ([]domain.Video, error)
 }
 
 // VideoProcessor is the Outbound Port for video processing logic
@@ -24,6 +25,14 @@ type Storage interface {
 	DeleteDir(path string) error
 	ListOutputs() ([]domain.FileInfo, error)
 	GetOutputPath(filename string) string
+}
+
+// VideoRepository is the Outbound Port for video data persistence
+type VideoRepository interface {
+	Create(video *domain.Video) error
+	Update(video *domain.Video) error
+	GetByID(id int64) (*domain.Video, error)
+	GetByUserID(userID int64) ([]domain.Video, error)
 }
 
 // UserUseCase is the Inbound Port for user logic

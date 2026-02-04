@@ -22,6 +22,7 @@ import (
 )
 
 func main() {
+	fmt.Println("Starting Video Processor Server v2 (Worker Pool)...")
 	// Verify if ffmpeg is installed
 	_, err := exec.LookPath("ffmpeg")
 	if err != nil {
@@ -63,13 +64,19 @@ func main() {
 	storage := outbound_storage.NewFSStorage()
 	processor := outbound_processor.NewFFmpegProcessor()
 	userRepo := outbound_repository.NewPostgresUserRepository(dbPool)
+	videoRepo := outbound_repository.NewPostgresVideoRepository(dbPool)
 
 	// Initialize Core Services
-	videoService := core_services.NewVideoService(processor, storage)
-	userService := core_services.NewUserService(userRepo, os.Getenv("JWT_SECRET"))
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		jwtSecret = "fiapx-secret-key"
+	}
+
+	videoService := core_services.NewVideoService(processor, storage, videoRepo)
+	userService := core_services.NewUserService(userRepo, jwtSecret)
 
 	// Initialize Inbound Adapter (HTTP)
-	handler := inbound_http.NewHandler(videoService, userService, storage)
+	handler := inbound_http.NewHandler(videoService, userService, storage, jwtSecret)
 
 	r := gin.Default()
 
