@@ -4,15 +4,12 @@ import (
 	"fmt"
 	"log"
 	inbound_http "video-processor/internal/adapters/inbound/http"
-	outbound_processor "video-processor/internal/adapters/outbound/processor"
 	outbound_repository "video-processor/internal/adapters/outbound/repository"
 	outbound_storage "video-processor/internal/adapters/outbound/storage"
 	core_services "video-processor/internal/core/services"
 
 	"context"
 	"os"
-
-	"os/exec"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-migrate/migrate/v4"
@@ -22,12 +19,7 @@ import (
 )
 
 func main() {
-	fmt.Println("Starting Video Processor Server v2 (Worker Pool)...")
-	// Verify if ffmpeg is installed
-	_, err := exec.LookPath("ffmpeg")
-	if err != nil {
-		log.Fatal("❌ Erro: ffmpeg não encontrado no sistema. Por favor, instale o ffmpeg para continuar.")
-	}
+	fmt.Println("Starting Video Processor API...")
 
 	// Database initialization
 	dbUser := os.Getenv("DB_USER")
@@ -62,7 +54,6 @@ func main() {
 
 	// Initialize Outbound Adapters
 	storage := outbound_storage.NewFSStorage()
-	processor := outbound_processor.NewFFmpegProcessor()
 	userRepo := outbound_repository.NewPostgresUserRepository(dbPool)
 	videoRepo := outbound_repository.NewPostgresVideoRepository(dbPool)
 
@@ -72,7 +63,7 @@ func main() {
 		jwtSecret = "fiapx-secret-key"
 	}
 
-	videoService := core_services.NewVideoService(processor, storage, videoRepo)
+	videoService := core_services.NewVideoService(storage, videoRepo)
 	userService := core_services.NewUserService(userRepo, jwtSecret)
 
 	// Initialize Inbound Adapter (HTTP)
@@ -95,8 +86,8 @@ func main() {
 	})
 
 	// Static files
-	r.Static("/uploads", "./uploads")
-	r.Static("/outputs", "./outputs")
+	r.Static("/uploads", "/app/uploads")
+	r.Static("/outputs", "/app/outputs")
 
 	// Register Routes
 	handler.RegisterRoutes(r)

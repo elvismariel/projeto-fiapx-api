@@ -17,9 +17,9 @@ type fsStorage struct {
 
 func NewFSStorage() ports.Storage {
 	storage := &fsStorage{
-		uploadDir: "uploads",
-		outputDir: "outputs",
-		tempDir:   "temp",
+		uploadDir: "/app/uploads",
+		outputDir: "/app/outputs",
+		tempDir:   "/app/temp",
 	}
 	storage.createDirs()
 	return storage
@@ -125,4 +125,8 @@ func (s *fsStorage) ListOutputs() ([]domain.FileInfo, error) {
 
 func (s *fsStorage) GetOutputPath(filename string) string {
 	return filepath.Join(s.outputDir, filename)
+}
+
+func (s *fsStorage) GetUploadPath(filename string) string {
+	return filepath.Join(s.uploadDir, filename)
 }

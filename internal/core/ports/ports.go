@@ -25,6 +25,7 @@ type Storage interface {
 	DeleteDir(path string) error
 	ListOutputs() ([]domain.FileInfo, error)
 	GetOutputPath(filename string) string
+	GetUploadPath(filename string) string
 }
 
 // VideoRepository is the Outbound Port for video data persistence
