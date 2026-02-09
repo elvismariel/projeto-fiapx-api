@@ -66,7 +66,7 @@ func (s *userService) Register(email, password, name string) (domain.AuthRespons
 
 func (s *userService) Login(email, password string) (domain.AuthResponse, error) {
 	user, err := s.repo.GetByEmail(email)
-	if err != nil {
+	if err != nil || user == nil {
 		return domain.AuthResponse{}, errors.New("credenciais inválidas")
 	}
 

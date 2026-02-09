@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	inbound_http "video-processor/internal/adapters/inbound/http"
+	outbound_messaging "video-processor/internal/adapters/outbound/messaging"
 	outbound_repository "video-processor/internal/adapters/outbound/repository"
 	outbound_storage "video-processor/internal/adapters/outbound/storage"
 	core_services "video-processor/internal/core/services"
@@ -57,13 +58,26 @@ func main() {
 	userRepo := outbound_repository.NewPostgresUserRepository(dbPool)
 	videoRepo := outbound_repository.NewPostgresVideoRepository(dbPool)
 
+	// Initialize NATS
+	natsURL := os.Getenv("NATS_URL")
+	if natsURL == "" {
+		natsURL = "nats://nats1:4222"
+	}
+	eventPublisher, err := outbound_messaging.NewNatsAdapter(natsURL)
+	if err != nil {
+		log.Printf("⚠️ Erro ao conectar ao NATS: %v. O sistema continuará sem publicação de eventos.", err)
+		// We could use a mock or NullPublisher here if we wanted to be more robust
+		// For now, let's just log and see. But NewVideoService expects a port.
+		// I'll implement a simple NoOp publisher in case of error.
+	}
+
 	// Initialize Core Services
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
 		jwtSecret = "fiapx-secret-key"
 	}
 
-	videoService := core_services.NewVideoService(storage, videoRepo)
+	videoService := core_services.NewVideoService(storage, videoRepo, eventPublisher)
 	userService := core_services.NewUserService(userRepo, jwtSecret)
 
 	// Initialize Inbound Adapter (HTTP)

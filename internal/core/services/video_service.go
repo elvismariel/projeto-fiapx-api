@@ -11,14 +11,16 @@ import (
 )
 
 type videoService struct {
-	storage ports.Storage
-	repo    ports.VideoRepository
+	storage   ports.Storage
+	repo      ports.VideoRepository
+	publisher ports.EventPublisher
 }
 
-func NewVideoService(s ports.Storage, r ports.VideoRepository) ports.VideoUseCase {
+func NewVideoService(s ports.Storage, r ports.VideoRepository, p ports.EventPublisher) ports.VideoUseCase {
 	return &videoService{
-		storage: s,
-		repo:    r,
+		storage:   s,
+		repo:      r,
+		publisher: p,
 	}
 }
 
@@ -49,6 +51,15 @@ func (s *videoService) UploadAndProcess(userID int64, filename string, file io.R
 	if err != nil {
 		s.storage.DeleteFile(videoPath)
 		return domain.ProcessingResult{Success: false, Message: "Erro ao criar registro no banco: " + err.Error()}, err
+	}
+
+	// Publish NATS event
+	err = s.publisher.PublishUploadEvent(video.ID, video.Filename)
+	if err != nil {
+		// Log error but don't fail the upload since it's already in DB/Storage
+		// or should we fail it? Usually, we want the event to be published.
+		// For this exercise, let's keep it robust.
+		fmt.Printf("⚠️ Erro ao publicar evento no NATS: %v\n", err)
 	}
 
 	return domain.ProcessingResult{
