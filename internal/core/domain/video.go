@@ -38,3 +38,18 @@ type FileInfo struct {
 	DownloadURL string `json:"download_url"`
 	Status      string `json:"status,omitempty"`
 }
+
+type ListVideosResponse struct {
+	Success bool    `json:"success"`
+	Videos  []Video `json:"videos"`
+}
+
+type FileListResponse struct {
+	Files []FileInfo `json:"files"`
+	Total int        `json:"total"`
+}
+
+type ErrorResponse struct {
+	Success bool   `json:"success"`
+	Message string `json:"message"`
+}

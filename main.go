@@ -1,5 +1,23 @@
 package main
 
+// @title Fiap X Video Processor API
+// @version 1.0
+// @description API for uploading videos and managing their processing.
+// @termsOfService http://swagger.io/terms/
+
+// @contact.name API Support
+// @contact.url http://www.swagger.io/support
+// @contact.email support@swagger.io
+
+// @license.name Apache 2.0
+// @license.url http://www.apache.org/licenses/LICENSE-2.0.html
+
+// @host localhost:8080
+// @BasePath /
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name Authorization
+
 import (
 	"fmt"
 	"log"
@@ -9,6 +27,8 @@ import (
 	outbound_storage "video-processor/internal/adapters/outbound/storage"
 	core_services "video-processor/internal/core/services"
 
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	ginprometheus "github.com/zsais/go-gin-prometheus"
 
 	"context"
@@ -16,6 +36,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-migrate/migrate/v4"
+
+	_ "video-processor/docs"
+
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -108,6 +131,9 @@ func main() {
 	// Static files
 	r.Static("/uploads", "/app/uploads")
 	r.Static("/outputs", "/app/outputs")
+
+	// Swagger documentation
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// Register Routes
 	handler.RegisterRoutes(r)
