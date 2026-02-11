@@ -12,11 +12,6 @@ type VideoUseCase interface {
 	GetVideosByUserID(userID int64) ([]domain.Video, error)
 }
 
-// VideoProcessor is the Outbound Port for video processing logic
-type VideoProcessor interface {
-	ExtractFrames(videoPath string, timestamp string) ([]string, error)
-}
-
 // Storage is the Outbound Port for file operations
 type Storage interface {
 	SaveUpload(filename string, data io.Reader) (string, error)
